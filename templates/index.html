@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech to Text Converter with Translation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #e0f7fa;
+        }
+
+        .container {
+            background: linear-gradient(135deg, #ffffff, #e1f5fe);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #0288d1;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        /* File Input Section */
+        .upload-section {
+            margin-bottom: 25px;
+        }
+
+        .file-label {
+            background-color: #0288d1;
+            color: white;
+            padding: 14px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .file-label:hover {
+            background-color: #0277bd;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .selected-file {
+            margin-top: 10px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        /* Progress Bar */
+        .progress-wrapper {
+            display: none;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 18px;
+            background-color: #cfd8dc;
+            border-radius: 10px;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #0288d1;
+            transition: width 0.4s;
+        }
+
+        /* Transcribed Text Section */
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-text {
+            background-color: #fafafa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #b0bec5;
+            min-height: 100px;
+            white-space: pre-wrap;
+            color: #455a64;
+            font-family: "Courier New", monospace;
+        }
+
+        /* Translation Section */
+        #translationSection {
+            margin-top: 30px;
+            display: none;
+        }
+
+        #translatedText {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #a5d6a7;
+            min-height: 80px;
+            white-space: pre-wrap;
+            color: #2e7d32;
+            font-family: "Courier New", monospace;
+            margin-top: 10px;
+        }
+
+        /* Error Message */
+        .error-message {
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 15px;
+            display: none;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0288d1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Speech to Text Converter</h1>
+
+        <!-- File Upload Section -->
+        <div class="upload-section">
+            <label for="audioFile" class="file-label">Upload Audio</label>
+            <input type="file" id="audioFile" class="file-input" accept=".wav,.mp3,.m4a,.ogg">
+            <div class="selected-file" id="selectedFile"></div>
+        </div>
+
+        <!-- Loading Spinner and Progress Bar -->
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="progress-wrapper" id="progressWrapper">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+        </div>
+
+        <!-- Transcription Result Section -->
+        <div class="result-section" id="resultSection">
+            <h3>Transcribed Text:</h3>
+            <div class="result-text" id="transcribedText"></div>
+        </div>
+
+        <!-- Translation Section -->
+        <div id="translationSection">
+            <h3>Translate Text</h3>
+            <select id="languageSelect">
+                <option value="af_ZA">Afrikaans</option>
+                <option value="ar_AR">Arabic</option>
+                <option value="az_AZ">Azerbaijani</option>
+                <option value="bn_IN">Bengali</option>
+                <option value="cs_CZ">Czech</option>
+                <option value="de_DE">German</option>
+                <option value="en_XX">English</option>
+                <option value="es_XX">Spanish</option>
+                <option value="et_EE">Estonian</option>
+                <option value="fa_IR">Persian</option>
+                <option value="fi_FI">Finnish</option>
+                <option value="fr_XX">French</option>
+                <option value="gl_ES">Galician</option>
+                <option value="gu_IN">Gujarati</option>
+                <option value="he_IL">Hebrew</option>
+                <option value="hi_IN">Hindi</option>
+                <option value="hr_HR">Croatian</option>
+                <option value="id_ID">Indonesian</option>
+                <option value="it_IT">Italian</option>
+                <option value="ja_XX">Japanese</option>
+                <option value="ka_GE">Georgian</option>
+                <option value="kk_KZ">Kazakh</option>
+                <option value="km_KH">Khmer</option>
+                <option value="ko_KR">Korean</option>
+                <option value="lt_LT">Lithuanian</option>
+                <option value="lv_LV">Latvian</option>
+                <option value="ml_IN">Malayalam</option>
+                <option value="mk_MK">Macedonian</option>
+                <option value="mn_MN">Mongolian</option>
+                <option value="mr_IN">Marathi</option>
+                <option value="my_MM">Burmese</option>
+                <option value="ne_NP">Nepali</option>
+                <option value="nl_XX">Dutch</option>
+                <option value="pl_PL">Polish</option>
+                <option value="ps_AF">Pashto</option>
+                <option value="pt_XX">Portuguese</option>
+                <option value="ro_RO">Romanian</option>
+                <option value="ru_RU">Russian</option>
+                <option value="si_LK">Sinhala</option>
+                <option value="sl_SI">Slovene</option>
+                <option value="sv_SE">Swedish</option>
+                <option value="sw_KE">Swahili</option>
+                <option value="ta_IN">Tamil</option>
+                <option value="te_IN">Telugu</option>
+                <option value="th_TH">Thai</option>
+                <option value="tl_XX">Tagalog</option>
+                <option value="tr_TR">Turkish</option>
+                <option value="uk_UA">Ukrainian</option>
+                <option value="ur_PK">Urdu</option>
+                <option value="vi_VN">Vietnamese</option>
+                <option value="xh_ZA">Xhosa</option>
+                <option value="zh_CN">Chinese</option>
+
+            </select>
+            <button id="translateButton">Translate</button>
+            <div id="translatedText"></div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const audioInput = document.getElementById('audioFile');
+            const selectedFile = document.getElementById('selectedFile');
+            const progressWrapper = document.getElementById('progressWrapper');
+            const progressBar = document.getElementById('progressBar');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const resultSection = document.getElementById('resultSection');
+            const transcribedText = document.getElementById('transcribedText');
+            const translationSection = document.getElementById('translationSection');
+            const translatedText = document.getElementById('translatedText');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Handle audio file upload
+            audioInput.addEventListener('change', function (e) {
+                const file = e.target.files[0];
+                if (file) {
+                    selectedFile.textContent = `File: ${file.name}`;
+                    errorMessage.style.display = 'none';
+                    transcribedText.textContent = '';
+                    resultSection.style.display = 'none';
+                    translationSection.style.display = 'none';
+                    uploadFile(file);
+                }
+            });
+
+            function uploadFile(file) {
+                const formData = new FormData();
+                formData.append('audio', file);
+
+                loadingSpinner.style.display = 'block';
+                progressWrapper.style.display = 'block';
+                progressBar.style.width = '0%';
+
+                axios.post('/upload', formData, {
+                    onUploadProgress: (progressEvent) => {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        progressBar.style.width = percentCompleted + '%';
+                    }
+                })
+                    .then(response => {
+                        loadingSpinner.style.display = 'none';
+                        progressWrapper.style.display = 'none';
+                        resultSection.style.display = 'block';
+                        translationSection.style.display = 'block';
+                        transcribedText.textContent = response.data.transcribed_text;
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';
+                        progressWrapper.style.display = 'none';
+                        errorMessage.style.display = 'block';
+                        errorMessage.textContent = error.response?.data?.error || 'An error occurred during processing';
+                    });
+            }
+
+            // Handle translation
+            document.getElementById('translateButton').addEventListener('click', function () {
+                const textToTranslate = transcribedText.textContent;
+                const targetLanguage = document.getElementById('languageSelect').value;
+
+                if (!textToTranslate) {
+                    alert("No text available to translate.");
+                    return;
+                }
+
+                translatedText.textContent = ''; // Clear previous translation
+                loadingSpinner.style.display = 'block';
+
+                axios.post('/translate', {
+                    text: textToTranslate,
+                    target_language: targetLanguage
+                })
+                    .then(response => {
+                        loadingSpinner.style.display = 'none';
+                        translatedText.textContent = response.data.translated_text || "Translation failed.";
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';
+                        console.error('Error:', error);
+                        translatedText.textContent = "An error occurred.";
+                    });
+            });
+        });
+    </script>
+</body>
+
+</html>
